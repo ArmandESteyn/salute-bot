@@ -1,0 +1,23 @@
+{
+  "name": "salute-bot",
+  "version": "1.0.0",
+  "description": "Simple salute bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArmandESteyn/salute-bot.git"
+  },
+  "author": "Armand Steyn",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ArmandESteyn/salute-bot/issues"
+  },
+  "homepage": "https://github.com/ArmandESteyn/salute-bot#readme",
+  "dependencies": {
+    "botbuilder": "^3.6.0",
+    "dotenv": "^4.0.0"
+  }
+}
