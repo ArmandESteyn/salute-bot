@@ -3,68 +3,133 @@ require('dotenv').config();
 var restify = require('restify');
 var request = require('request');
 
+//Using a LUIS model
 var model = process.env.LUIS_MODEL;
 var recognizer = new builder.LuisRecognizer(model);
 var intents = new builder.IntentDialog({ recognizers: [recognizer] });
 
+//Setup Restify server
 var server = restify.createServer();
 server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log('%s listening to %s', server.name, server.url);
 });
 
+//Setup Bot
 var connector = new builder.ChatConnector();
 var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
 bot.dialog('/', intents);
 
+//The Intents handled by the bot
 intents
     .matches('saluteSomeone', [
         confirmMember,
+        searchForSomeone,
         confirmBadge,
-        confirmComment,
+        confirmReason,     //Waterfall functions each following up on eachother
         confirmSalute,
         saluteUser
     ])
-    .onDefault(
+    .matches('searchForSomeone', [
+        searchForSome1
+    ])
+    .onDefault(     //Default intent when the bot does not know what you want.
     function (session) {
         session.send('I do not understand');
     }
     )
 
-var memberString;
-var badgeString;
-var commentString;
+var memberString; //Contains the member string
+var badgeString; //Contains the badge string
+var reasonString;  // contains the comment string
 
-var usersArray = [];
-var badgeUrl = [];
-var itemsArray = [];
-var cardArray = [];
-var badgeDescription = [];
-var badgeName = [];
-var filterNames = [];
+var usersArray = []; //an object containing all the names and lastnames of salute users
+var badgeUrl = []; //an object containing all the badge image urls
+var itemsArray = []; // a base object containing an array of badge objects
+var cardArray = []; // an object of badge attatchment cards 
+var badgeDescription = []; //description of the badges
+var badgeName = []; //badge names
 
-getUsernames();
-getBadgeInfo();
+getUsernames(); // Does a API request to fetch all the user names and surnames
+getBadgeInfo(); // Gets all the badge info and populates the array objects
 
-function confirmMember(session, args, next) {
-    session.dialogData.entities = args.entities;
+
+function searchForSome1(session, args, next) {
     var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member');
+    var nameFilter = [];
+    var nameToLower = [];
+
     if (getMember) {
+        for (j = 0; j < usersArray.length; j++) {
+            nameToLower.push(usersArray[j].toLowerCase());
+            if (nameToLower[j].includes(getMember.entity)) {
+                nameFilter.push(usersArray[j]);
+            }
+        }
+        if (nameFilter.length > 0) {
+            session.send(getMember.entity);
+            builder.Prompts.choice(session, 'I have found some people', nameFilter);
+        }
+
+    }
+
+}
+
+
+
+function confirmMember(session, args, next) {   // See if the user provided a user after the salute command
+
+    var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member'); // get the name if provided
+    if (getMember) { // if a name is provided carry on to the next function
 
         next(args, { response: getMember.entity });
     }
     else {
 
-        builder.Prompts.choice(session, 'Who do you want to salute?', usersArray);
+        builder.Prompts.text(session, 'Who do you want to salute?'); // Ask the user for a user to salute and pass it to the next function
 
+    }
+}
+
+function searchForSomeone(session, args, next) {
+
+    var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member');
+    var nameFilter = [];
+    var nameToLower = [];
+
+    if (args.response) {
+
+        memberString = args.response;
+
+    }
+    else {
+        memberString = getMember.entity;
 
     }
 
-    confirmUser(session, args, next)
-    {
+    if (getMember) {
+        next(args, { response: getMember.entity });
+    }
+    else {
+        for (j = 0; j < usersArray.length; j++) {
+            nameToLower.push(usersArray[j].toLowerCase());
+            if (nameToLower[j].includes(memberString.toLowerCase())) {
+                nameFilter.push(usersArray[j]);
+            }
+        }
+
+        if(nameFilter.length > 0)
+        {
+            builder.Prompts.choice(session, 'I have found some people', nameFilter);
+        }
+        else
+        {
+            session.send("Sorry I could not find anyone 0_0");
+        }
+        
+
 
     }
-
 
 }
 
@@ -76,14 +141,15 @@ function confirmBadge(session, args, next) {
 
 
     if (args.response) {
-        memberString = args.response.entity;
+        memberString = args.response.entity
 
     }
     else {
         memberString = getMember.entity;
 
     }
-    // Search for the user here 
+
+
 
     if (getBadge) {
         next(args, { response: getBadge.entity });
@@ -99,50 +165,45 @@ function confirmBadge(session, args, next) {
         session.send('Please give ' + memberString + ' a Badge');
         builder.Prompts.choice(session, reply, badgeName);
 
-
-
-
     }
-
-
 
 }
 
-function confirmComment(session, args, next) {
+function confirmReason(session, args, next) {
     var getBadge = builder.EntityRecognizer.findEntity(args.entities, 'badge');
-    var getComment = builder.EntityRecognizer.findEntity(args.entities, 'comment');
+    var getReason = builder.EntityRecognizer.findEntity(args.entities, 'reason');
 
     if (args.response) {
-        badgeString = args.response.entity;
+        badgeString = args.response.entity
 
     }
     else {
         badgeString = getBadge.entity;
 
     }
-    if (getComment) {
+    if (getReason) {
         next(args, { response: getBadge.entity });
     }
     else {
-        builder.Prompts.text(session, 'Ok you have ' + memberString + ' Saluted with a badge of a ' + badgeString + ' now lets add a comment ');
+        builder.Prompts.text(session, 'Ok you have ' + memberString + ' Saluted with a badge of a ' + badgeString + ' now lets add a Reason ');
     }
 
 
 }
 
 function confirmSalute(session, args, next) {
-    var getComment = builder.EntityRecognizer.findEntity(args.entities, 'comment');
+    var getReason = builder.EntityRecognizer.findEntity(args.entities, 'reason');
 
     if (args.response) {
-        commentString = args.response;
+        ReasonString = args.response;
 
     }
     else {
-        commentString = getComment.entity;
+        ReasonString = getReason.entity;
 
     }
 
-    builder.Prompts.confirm(session, "I will Salute " + memberString + ' with a badge of a ' + badgeString + ' and add the comment ' + commentString + ' ,is this ok?');
+    builder.Prompts.confirm(session, "I will Salute " + memberString + ' with a badge of a ' + badgeString + ' and add a Reason ' + ReasonString + ' ,is this ok?');
 }
 
 function saluteUser(session, args) {
@@ -177,15 +238,12 @@ function getUsernames(session) {
                 usersArray.push(info[i].firstName + " " + info[i].lastName);
             }
 
-            //session.send(usersArray[1]);
-
         }
 
     }
 
     request(options, callback);
 }
-
 
 
 function getBadgeInfo(session) {
