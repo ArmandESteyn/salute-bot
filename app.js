@@ -245,8 +245,8 @@ function getUsernames(session) {
 
 
             for (i = 0; i < info.length; i++) {
-                usersArray.push(info[i].firstName + " " + info[i].lastName);
-                userId.push(info[i].userId);
+                usersArray[i]= (info[i].firstName + " " + info[i].lastName);
+                userId[i]=info[i].userId;
             }
 
         }
@@ -275,9 +275,9 @@ function getBadgeInfo(session) {
             itemsArray = info.items;
 
             for (j = 0; j < itemsArray.length; j++) {
-                badgeUrl.push(itemsArray[j].badgeImageUrl);
-                badgeName.push(itemsArray[j].name);
-                badgeDescription.push(itemsArray[j].description);
+                badgeUrl[j]=itemsArray[j].badgeImageUrl;
+                badgeName[j]=itemsArray[j].name;
+                badgeDescription[j]=itemsArray[j].description;
             }
         }
     }
@@ -305,7 +305,7 @@ function getSingleUser(){
 
 
             for (i = 0; i < info.length; i++) {
-                usersArray.push(info[i].firstName + " " + info[i].lastName);
+                usersArray[i]= (info[i].firstName + " " + info[i].lastName);
             }
 
         }
@@ -338,7 +338,7 @@ function getTop(session) {
             var topstring = "";
 
             for (i = 0; i < itemsArray.length; i++) {
-                TopArray.push(itemsArray[i].firstName + " " + itemsArray[i].lastName);
+                TopArray[i] = (itemsArray[i].firstName + " " + itemsArray[i].lastName);
                 topstring += TopArray[i] + "\n\n";
             }
 
