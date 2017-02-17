@@ -383,7 +383,7 @@ function searchForSome1(session, args, next) {
 
     if (getMember) {
         for (j = 0; j < usersArray.length; j++) {
-            nameToLower[j]=usersArray[j].toLowerCase());
+            nameToLower[j]=usersArray[j].toLowerCase();
             if (nameToLower[j].includes(getMember.entity)) {
                 nameFilter[j]=usersArray[j];
             }
