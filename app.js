@@ -400,7 +400,7 @@ function searchForSome1(session, args, next) {
 function getCardsAttachments(session) {
 
     for (i = 0; i < badgeUrl.length; i++) {
-        cardArray.push
+        cardArray[i]=
             (
             new builder.ThumbnailCard(session)
                 .images([
