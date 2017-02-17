@@ -23,6 +23,34 @@ var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
 bot.dialog('/', intents);
 
+//###################################################################################################
+                                        //Global Variables
+//###################################################################################################
+var memberString; //Contains the member string
+var badgeString; //Contains the badge string
+var reasonString;  // contains the comment string
+var usersArray = []; //an object containing all the names and lastnames of salute users
+var badgeUrl = []; //an object containing all the badge image urls
+var cardArray = []; // an object of badge attatchment cards 
+var badgeDescription = []; //description of the badges
+var badgeName = []; //badge names
+var userId = []; //Array of user ID's
+//###################################################################################################
+
+
+//##################################################################################################
+                                        //Invoked methods
+//##################################################################################################
+getUsernames(); // Does a API request to fetch all the user names and surnames
+getBadgeInfo(); // Gets all the badge info and populates the array objects
+//#################################################################################################
+
+
+
+
+//#################################################################################################
+//                                     //Dialog Intents
+//#################################################################################################
 //The Intents handled by the bot
 intents
     .matches('saluteSomeone', [
@@ -50,20 +78,7 @@ intents
         session.send('I do not understand');
     }
     )
-
-var memberString; //Contains the member string
-var badgeString; //Contains the badge string
-var reasonString;  // contains the comment string
-var usersArray = []; //an object containing all the names and lastnames of salute users
-var badgeUrl = []; //an object containing all the badge image urls
-var cardArray = []; // an object of badge attatchment cards 
-var badgeDescription = []; //description of the badges
-var badgeName = []; //badge names
-var userId = []; //Array of user ID's
-
-
-getUsernames(); // Does a API request to fetch all the user names and surnames
-getBadgeInfo(); // Gets all the badge info and populates the array objects
+//##################################################################################################
 
 
 
@@ -257,7 +272,7 @@ function getUsernames(session) {
 }
 
 function getBadgeInfo(session) {
-    var itemsArray = [];
+    var itemsArray = [9];
     var options = {
         url: 'https://saluteapi.fivefriday.com/api/Badge?active=true&currentPage=1&perPage=9999',
         headers: {
