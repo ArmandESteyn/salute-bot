@@ -14,16 +14,10 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log('%s listening to %s', server.name, server.url);
 });
 
-server.get('/test/:name', function (req, res) {
-    res.send('hello ' + req.params.name);
-    return next();
-});
-
-
 //Setup Bot
 var connector = new builder.ChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword: process.env.MICROSOFT_APP_PASSWORD
+    appId: '3e46f544-a523-4a80-a5b5-69fc136c07d2',
+    appPassword: 'RJjLVUrvu4Pava5rTcPnMpU'
 });
 var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
