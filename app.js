@@ -368,9 +368,9 @@ function searchForSome1(session, args, next) {
 
     if (getMember) {
         for (j = 0; j < usersArray.length; j++) {
-            nameToLower.push(usersArray[j].toLowerCase());
+            nameToLower[j]=usersArray[j].toLowerCase());
             if (nameToLower[j].includes(getMember.entity)) {
-                nameFilter.push(usersArray[j]);
+                nameFilter[j]=usersArray[j];
             }
         }
         if (nameFilter.length > 0) {
