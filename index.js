@@ -14,6 +14,12 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log('%s listening to %s', server.name, server.url);
 });
 
+server.get('/test/:name', function (req, res) {
+    res.send('hello ' + req.params.name);
+    return next();
+});
+
+
 //Setup Bot
 var connector = new builder.ChatConnector();
 var bot = new builder.UniversalBot(connector);
@@ -30,8 +36,17 @@ intents
         confirmSalute,
         saluteUser
     ])
-    .matches('searchForSomeone', [
-        searchForSome1
+    .matches('searchForSomeone', 
+        function(session)
+        {
+        
+        }
+    )
+    .matches('topSalutes', [
+        getTop
+    ])
+    .matches('Help',[
+        helpTheUser
     ])
     .onDefault(     //Default intent when the bot does not know what you want.
     function (session) {
@@ -42,47 +57,44 @@ intents
 var memberString; //Contains the member string
 var badgeString; //Contains the badge string
 var reasonString;  // contains the comment string
-
 var usersArray = []; //an object containing all the names and lastnames of salute users
 var badgeUrl = []; //an object containing all the badge image urls
-var itemsArray = []; // a base object containing an array of badge objects
 var cardArray = []; // an object of badge attatchment cards 
 var badgeDescription = []; //description of the badges
 var badgeName = []; //badge names
+var userId = []; //Array of user ID's
+
 
 getUsernames(); // Does a API request to fetch all the user names and surnames
 getBadgeInfo(); // Gets all the badge info and populates the array objects
 
 
-function searchForSome1(session, args, next) {
-    var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member');
-    var nameFilter = [];
-    var nameToLower = [];
 
-    if (getMember) {
-        for (j = 0; j < usersArray.length; j++) {
-            nameToLower.push(usersArray[j].toLowerCase());
-            if (nameToLower[j].includes(getMember.entity)) {
-                nameFilter.push(usersArray[j]);
-            }
-        }
-        if (nameFilter.length > 0) {
-            session.send(getMember.entity);
-            builder.Prompts.choice(session, 'I have found some people', nameFilter);
-        }
-
-    }
-
-}
-
-
-
+//#########################################################################################################################
+                                                //Salute Someone waterfall methods
+//#########################################################################################################################
 function confirmMember(session, args, next) {   // See if the user provided a user after the salute command
 
     var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member'); // get the name if provided
+    var nameExists = false;
     if (getMember) { // if a name is provided carry on to the next function
 
-        next(args, { response: getMember.entity });
+        for (i = 0; i < usersArray.length; i++) {
+            if (getMember.entity == usersArray[i].toLowerCase()) {
+                nameExists = true;
+            }
+        }
+
+        if (true)//nameExists == true)
+        {
+            next(args, { response: getMember.entity });
+        }
+        else {
+            session.send(usersArray[44].toLowerCase());
+            session.send(getMember.entity);
+            session.send("Sorry this person does not exist");
+        }
+
     }
     else {
 
@@ -118,15 +130,13 @@ function searchForSomeone(session, args, next) {
             }
         }
 
-        if(nameFilter.length > 0)
-        {
+        if (nameFilter.length > 0) {
             builder.Prompts.choice(session, 'I have found some people', nameFilter);
         }
-        else
-        {
+        else {
             session.send("Sorry I could not find anyone 0_0");
         }
-        
+
 
 
     }
@@ -214,10 +224,13 @@ function saluteUser(session, args) {
         session.send('Very well I will cancel your request');
     }
 }
+//##########################################################################################################################
 
 
 
-
+//###########################################################################################################################
+                                                    //HTTP requests
+//###########################################################################################################################
 function getUsernames(session) {
     var options = {
         url: 'https://saluteapi.fivefriday.com//api/recognition/users',
@@ -236,6 +249,7 @@ function getUsernames(session) {
 
             for (i = 0; i < info.length; i++) {
                 usersArray.push(info[i].firstName + " " + info[i].lastName);
+                userId.push(info[i].userId);
             }
 
         }
@@ -245,8 +259,8 @@ function getUsernames(session) {
     request(options, callback);
 }
 
-
 function getBadgeInfo(session) {
+    var itemsArray = [];
     var options = {
         url: 'https://saluteapi.fivefriday.com/api/Badge?active=true&currentPage=1&perPage=9999',
         headers: {
@@ -276,6 +290,101 @@ function getBadgeInfo(session) {
 
 }
 
+function getSingleUser(){
+
+     var options = {
+        url: 'https://saluteapi.fivefriday.com/api/profile/',
+        headers: {
+            Authorization: process.env.API_KEY,
+            Company: 'fivefriday'
+        }
+    };
+
+    function callback(error, response, body) {
+
+        if (!error && response.statusCode == 200) {
+
+            var info = JSON.parse(body);
+
+
+            for (i = 0; i < info.length; i++) {
+                usersArray.push(info[i].firstName + " " + info[i].lastName);
+            }
+
+        }
+
+    }
+
+    request(options, callback);
+}
+
+function getTop(session) {
+    var TopArray = [];
+    var itemsArray = [];
+    var options = {
+        url: 'https://saluteapi.fivefriday.com/api/leaderboard?perPage=5&currentPage=1&sort=position',
+        headers: {
+            Authorization: process.env.API_KEY,
+            Company: 'fivefriday'
+        }
+    };
+
+
+    function callback(error, response, body) {
+
+
+        if (!error && response.statusCode == 200) {
+
+            var info = JSON.parse(body);
+
+            itemsArray = info.items;
+            var topstring = "";
+
+            for (i = 0; i < itemsArray.length; i++) {
+                TopArray.push(itemsArray[i].firstName + " " + itemsArray[i].lastName);
+                topstring += TopArray[i] + "\n\n";
+            }
+
+            session.send(topstring);
+
+        }
+
+    }
+
+    request(options, callback);
+
+}
+//###########################################################################################################################
+
+
+//###########################################################################################################################
+                                                    //Other Functions
+//###########################################################################################################################
+function helpTheUser(session){
+    session.send("This is what i do when you type help");
+}
+
+function searchForSome1(session, args, next) {
+    var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member');
+    var nameFilter = [];
+    var nameToLower = [];
+
+    if (getMember) {
+        for (j = 0; j < usersArray.length; j++) {
+            nameToLower.push(usersArray[j].toLowerCase());
+            if (nameToLower[j].includes(getMember.entity)) {
+                nameFilter.push(usersArray[j]);
+            }
+        }
+        if (nameFilter.length > 0) {
+            session.send(getMember.entity);
+            builder.Prompts.choice(session, 'I have found some people', nameFilter);
+        }
+
+    }
+
+}
+
 function getCardsAttachments(session) {
 
     for (i = 0; i < badgeUrl.length; i++) {
@@ -298,6 +407,4 @@ function getCardsAttachments(session) {
 
 }
 
-
-
-
+//############################################################################################################################
