@@ -272,7 +272,7 @@ function getUsernames(session) {
 }
 
 function getBadgeInfo(session) {
-    var itemsArray = [9];
+    var itemsArray = new string[9];
     var options = {
         url: 'https://saluteapi.fivefriday.com/api/Badge?active=true&currentPage=1&perPage=9999',
         headers: {
