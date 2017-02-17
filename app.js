@@ -373,7 +373,7 @@ function getTop(session) {
                                                     //Other Functions
 //###########################################################################################################################
 function helpTheUser(session){
-    session.send("This is what i do when you type help");
+    session.send("I can help by answering simple questions about how Slack works. I'm just a bot, though! If you need more help, try our Help Center for loads of useful information about Slack — it's easy to search! Or simply type */feedback* followed by your question or comment, and a human person will get back to you. :smile:");
 }
 
 function searchForSome1(session, args, next) {
