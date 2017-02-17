@@ -22,8 +22,8 @@ server.get('/test/:name', function (req, res) {
 
 //Setup Bot
 var connector = new builder.ChatConnector({
-    appId: '21e1e697-718e-45e0-9486-0cf6fb6d8442',
-    appPassword: 'Aq15LTVbU77TPHSBivxxvOy'
+    appId: process.env.MICROSOFT_APP_ID,
+    appPassword: process.env.MICROSOFT_APP_PASSWORD
 });
 var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
