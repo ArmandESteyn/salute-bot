@@ -64,9 +64,15 @@ intents
     .matches('searchForSomeone', 
         function(session)
         {
-        
+            
         }
     )
+    .matches('Greeting',[
+        function(session)
+        {
+            session.send("Hi! I am Salute Bot nice to meet you :D");
+        }
+    ])
     .matches('topSalutes', [
         getTop
     ])
@@ -373,7 +379,7 @@ function getTop(session) {
                                                     //Other Functions
 //###########################################################################################################################
 function helpTheUser(session){
-    session.send("I can help by answering simple questions about how Slack works. I'm just a bot, though! If you need more help, try our Help Center for loads of useful information about Slack — it's easy to search! Or simply type */feedback* followed by your question or comment, and a human person will get back to you. :smile:");
+    session.send("I can help by answering simple questions about how I work. I'm just a bot, though! If you need more help, ask someone else. Here is a list of my commands Salute \n\n Top \n\n Help \n\n");
 }
 
 function searchForSome1(session, args, next) {
