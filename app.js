@@ -379,7 +379,7 @@ function getTop(session) {
                                                     //Other Functions
 //###########################################################################################################################
 function helpTheUser(session){
-    session.send("I can help by answering simple questions about how I work. I'm just a bot, though! If you need more help, ask someone else. Here is a list of my commands Salute \n\n Top \n\n Help \n\n");
+    session.send("I can help by answering simple questions about how I work. I'm just a bot, though! If you need more help, ask someone else. Here is a list of my commands \n\n Salute \n\n Top \n\n Help \n\n");
 }
 
 function searchForSome1(session, args, next) {
