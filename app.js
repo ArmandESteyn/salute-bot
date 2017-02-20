@@ -79,6 +79,12 @@ intents
     .matches('Help',[
         helpTheUser
     ])
+    .matches('Login',[
+        function(session)
+        {
+            session.send("Just click this link to login https://account-dev.fivefriday.com/connect/authorize?response_type=code&client_id=SaluteNode&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&scope=openid%20openid%20profile%20Salute");
+        }
+    ])
     .onDefault(     //Default intent when the bot does not know what you want.
     function (session) {
         session.send('I do not understand');
