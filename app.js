@@ -2,6 +2,9 @@ var builder = require('botbuilder');
 require('dotenv').config();
 var restify = require('restify');
 var request = require('request');
+var Promise = require("bluebird");
+var Issuer = require('openid-client').Issuer;
+
 
 //Using a LUIS model
 var model = process.env.LUIS_MODEL;
@@ -16,8 +19,8 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 
 //Setup Bot
 var connector = new builder.ChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword:process.env.MICROSOFT_APP_PASSWORD
+    appId:process.env.MICROSOFT_APP_ID,
+    appPassword:process.env.MICROSOFT_APP_ID
 });
 var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
@@ -34,15 +37,55 @@ var cardArray = []; // an object of badge attatchment cards
 var badgeDescription = []; //description of the badges
 var badgeName = []; //badge names
 var userId = []; //Array of user ID's
+var Token = " ";
 //###################################################################################################
 
+var getClient = () => {
+    return new Promise((resolve, reject) => {
+        Issuer.discover('https://account-dev.fivefriday.com') // => Promise
+            .then(function (ff) {
+                console.log('Discovered issuer %s', JSON.stringify(ff));
+                client = new ff.Client({
+                    client_id: 'SaluteNode',
+                    client_secret: 'secret'
+                }); // => Client
+                resolve(client);
+            });
+    });
+}
 
+
+server.get('/callback/:id/:details', function (req, res, next) {
+    console.log("params", JSON.stringify(req.params));
+    console.log("my id is", req.params.id);
+
+    getClient().then((client) => {
+        client.authorizationCallback('https://salute-bot.azurewebsites.net/callback/' + req.params.id + '/' + req.params.details, req.params) // => Promise 
+            .then(function (tokenSet) {
+                console.log('received and validated tokens %j', tokenSet);
+                Token = tokenSet.access_token;
+
+                console.log('validated id_token claims %j', tokenSet.access_token); //!!!!!!!!!!!!!!!!!!!!!
+                res.send('Thanks for Loggin In go back to the chat ' + Token);
+                return next();
+
+            }, (err) => {
+                res.send('Sorry cant log in');
+                return next();
+            });
+
+
+    });
+
+
+});
 
 bot.dialog('/', [
     function (session) {
         //Authenticate user
-
-        session.beginDialog('/ensureProfile', session.userData.profile);
+        server.
+            session.beginDialog('/ensureProfile', session.userData.profile);
+        session.userData
     },
     function (session, results, next) {
         session.userData.profile = results.response;
@@ -103,20 +146,30 @@ intents
 //Bot Dialogs
 //#########################################################################################################################
 bot.dialog('/ensureProfile', [
-   // function (session, args, next) {
-       // session.dialogData.profile = args || {};
-       // if (!session.dialogData.profile.Key) {
-        //    builder.Prompts.text(session, "Hello I am Salute-Bot. Nice to meet you :D. Before we get started I will need some information.\n\n Can you please give me an API Key");
-       // } else {
-       //     next();
-      //  }
-   // },
+    function (session, args, next) {
+        session.dialogData.profile = args || {};
+        if (!session.dialogData.profile.Key) {
+
+            getClient().then((client) => {
+                var loginUrl = client.authorizationUrl({
+                    redirect_uri: 'https://salute-bot.azurewebsites.net/callback/uselater/',
+                    scope: 'openid profile Salute',
+                });
+
+                session.send("Go to this URL " + loginUrl);
+                builder.Prompts.confirm(session, "Did you log in?");
+
+            });
+
+        } else {
+            next();
+        }
+    },
     function (session, args, next) {
         var companyNames = ["fivefriday"];
-        session.dialogData.profile = args || {};
-       // if (results.response) {
-           // session.dialogData.profile.Key = results.response;
-      //  }
+        if (results.response) {
+            session.dialogData.profile.Key = Token;
+        }
         if (!session.dialogData.profile.companyName) {
             builder.Prompts.choice(session, "Hello I am Salute-Bot. Nice to meet you :D. Before we get started I will need some information.\n\n Can you please provide me with your Company Name?", companyNames);
         } else {
@@ -302,7 +355,7 @@ function getUsernames(session) {
     var options = {
         url: 'https://saluteapi.fivefriday.com//api/recognition/users',
         headers: {
-            Authorization: process.env.API_KEY,
+            Authorization: session.userData.profile.Key,
             Company: session.userData.profile.companyName
         }
     };
@@ -318,7 +371,7 @@ function getUsernames(session) {
                 usersArray[i] = (info[i].firstName + " " + info[i].lastName);
                 userId[i] = info[i].userId;
             }
-           
+
 
         }
     };
@@ -331,7 +384,7 @@ function getBadgeInfo(session) {
     var options = {
         url: 'https://saluteapi.fivefriday.com/api/Badge?active=true&currentPage=1&perPage=9999',
         headers: {
-            Authorization: process.env.API_KEY,
+            Authorization: session.userData.profile.Key,
             Company: session.userData.profile.companyName
         }
     };
@@ -363,7 +416,7 @@ function getTop(session) {
     var options = {
         url: 'https://saluteapi.fivefriday.com/api/leaderboard?perPage=5&currentPage=1&sort=position',
         headers: {
-            Authorization: process.env.API_KEY,
+            Authorization: session.userData.profile.Key,
             Company: session.userData.profile.companyName
         }
     };
