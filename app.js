@@ -45,6 +45,7 @@ var badgeName = []; //badge names
 var userId = []; //Array of user ID's
 var Token = "";
 var tokenUrl;
+var topstring = "";
 //---------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------------------------
@@ -132,7 +133,10 @@ intents
         }
     ])
     .matches('topSalutes', [
-        getTop
+        function(session)
+        {
+            session.send(topstring);
+        }
     ])
     .matches('Help', [
         helpTheUser
@@ -438,14 +442,12 @@ function getTop(session) {
             var info = JSON.parse(body);
 
             itemsArray = info.items;
-            var topstring = "";
+            
 
             for (i = 0; i < itemsArray.length; i++) {
                 TopArray[i] = (itemsArray[i].firstName + " " + itemsArray[i].lastName);
                 topstring += TopArray[i] + "\n\n";
             }
-
-            session.send(topstring);
 
         }
 
@@ -487,8 +489,7 @@ function getCardsAttachments(session) {
 
 }
 
-function getLoginCard(session)
-{
+function getLoginCard(session){
     return [
         new builder.ThumbnailCard(session)
                             .title("Please Log In")
