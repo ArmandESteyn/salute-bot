@@ -105,6 +105,7 @@ bot.dialog('/', [
 
         getUsernames(session);
         getBadgeInfo(session);
+        getTop(session);
 
         session.send("You are all set. Lets begin. Type Help to see what I can do");
         session.send(usersArray.length);
