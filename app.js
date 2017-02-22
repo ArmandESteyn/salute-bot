@@ -13,9 +13,15 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] });
 
 //Setup Restify server
 var server = restify.createServer();
+
+server.use(restify.queryParser());
+server.use(restify.bodyParser());
+
 server.listen(process.env.port || process.env.PORT || 3978, function () {
     console.log('%s listening to %s', server.name, server.url);
 });
+
+
 
 //Setup Bot
 var connector = new builder.ChatConnector({
@@ -25,9 +31,9 @@ var connector = new builder.ChatConnector({
 var bot = new builder.UniversalBot(connector);
 server.post('/api/messages', connector.listen());
 
-//###################################################################################################
-//Global Variables
-//###################################################################################################
+//---------------------------------------------------------------------------------------------------
+//                                       Global Variables
+//---------------------------------------------------------------------------------------------------
 var memberString; //Contains the member string
 var badgeString; //Contains the badge string
 var reasonString;  // contains the comment string
@@ -37,10 +43,14 @@ var cardArray = []; // an object of badge attatchment cards
 var badgeDescription = []; //description of the badges
 var badgeName = []; //badge names
 var userId = []; //Array of user ID's
-var Token = " ";
-//###################################################################################################
+var Token = "";
+var tokenUrl;
+//---------------------------------------------------------------------------------------------------
 
-var getClient = () => {
+//---------------------------------------------------------------------------------------------------
+//                                        Authentication
+//---------------------------------------------------------------------------------------------------
+var getClient = function () {
     return new Promise((resolve, reject) => {
         Issuer.discover('https://account-dev.fivefriday.com') // => Promise
             .then(function (ff) {
@@ -59,33 +69,35 @@ server.get('/callback/:id/:details', function (req, res, next) {
     console.log("params", JSON.stringify(req.params));
     console.log("my id is", req.params.id);
 
-    getClient().then((client) => {
-        client.authorizationCallback('https://salute-bot.azurewebsites.net/callback/' + req.params.id + '/' + req.params.details, req.params) // => Promise 
+    getClient().then(function (client) {
+        
+        client.authorizationCallback('https://salute-bot.azurewebsites.net/callback/' + req.params.id + '/' + req.params.details, req.params)
             .then(function (tokenSet) {
                 console.log('received and validated tokens %j', tokenSet);
                 Token = tokenSet.access_token;
 
                 console.log('validated id_token claims %j', tokenSet.access_token); //!!!!!!!!!!!!!!!!!!!!!
-                res.send('Thanks for Loggin In go back to the chat ' + Token);
+                res.send('Thanks for Loggin In go back to the chat ');
                 return next();
 
-            }, (err) => {
+            }, function (err) {
                 res.send('Sorry cant log in');
                 return next();
             });
 
 
+    }, function (err) {
+        res.send('Sorry cant log in broke first call');
+        return next();
     });
-
-
 });
+//---------------------------------------------------------------------------------------------------
 
 bot.dialog('/', [
     function (session) {
         //Authenticate user
-        server.
-            session.beginDialog('/ensureProfile', session.userData.profile);
-        session.userData
+        session.beginDialog('/ensureProfile', session.userData.profile);
+
     },
     function (session, results, next) {
         session.userData.profile = results.response;
@@ -101,18 +113,9 @@ bot.dialog('/', [
 
 ]);
 
-
-
-
-//##################################################################################################
-//Invoked methods
-//##################################################################################################
-// Gets all the badge info and populates the array objects
-//#################################################################################################
-
-//#################################################################################################
-//                                     //Dialog Intents
-//#################################################################################################
+//---------------------------------------------------------------------------------------------------
+//                                         Dialog Intents
+//---------------------------------------------------------------------------------------------------
 //The Intents handled by the bot
 intents
     .matches('saluteSomeone', [
@@ -140,11 +143,11 @@ intents
     }
     )
 
-//#########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 
-//#########################################################################################################################
-//Bot Dialogs
-//#########################################################################################################################
+//---------------------------------------------------------------------------------------------------
+//                                          Bot Dialogs
+//---------------------------------------------------------------------------------------------------
 bot.dialog('/ensureProfile', [
     function (session, args, next) {
         session.dialogData.profile = args || {};
@@ -155,8 +158,13 @@ bot.dialog('/ensureProfile', [
                     redirect_uri: 'https://salute-bot.azurewebsites.net/callback/uselater/',
                     scope: 'openid profile Salute',
                 });
+                tokenUrl = loginUrl;
+                var cards = getLoginCard(session)
+                var reply = new builder.Message(session)
+                .attachments(cards);
 
-                session.send("Go to this URL " + loginUrl);
+                session.send("Hello I am Salute-Bot. Nice to meet you :D. Before we get started I will need some information.")
+                session.send(reply);
                 builder.Prompts.confirm(session, "Did you log in?");
 
             });
@@ -165,13 +173,13 @@ bot.dialog('/ensureProfile', [
             next();
         }
     },
-    function (session, args, next) {
+    function (session, results, next) {
         var companyNames = ["fivefriday"];
         if (results.response) {
             session.dialogData.profile.Key = Token;
         }
         if (!session.dialogData.profile.companyName) {
-            builder.Prompts.choice(session, "Hello I am Salute-Bot. Nice to meet you :D. Before we get started I will need some information.\n\n Can you please provide me with your Company Name?", companyNames);
+            builder.Prompts.choice(session, " Can you please provide me with your Company Name?", companyNames);
         } else {
             next();
         }
@@ -186,13 +194,13 @@ bot.dialog('/ensureProfile', [
 ])
 
 bot.dialog('/intents', intents);
-//#########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 
 
 
-//#########################################################################################################################
-//Salute Someone waterfall methods
-//#########################################################################################################################
+//---------------------------------------------------------------------------------------------------
+//                                  Salute Someone waterfall methods
+//---------------------------------------------------------------------------------------------------
 function confirmMember(session, args, next) {   // See if the user provided a user after the salute command
 
     var getMember = builder.EntityRecognizer.findEntity(args.entities, 'member'); // get the name if provided
@@ -344,18 +352,18 @@ function saluteUser(session, args) {
         session.send('Very well I will cancel your request');
     }
 }
-//##########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 
 
 
-//###########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 //HTTP requests
-//###########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 function getUsernames(session) {
     var options = {
-        url: 'https://saluteapi.fivefriday.com//api/recognition/users',
+        url: 'https://saluteapi-dev.fivefriday.com//api/recognition/users',
         headers: {
-            Authorization: session.userData.profile.Key,
+            Authorization: "Bearer "+session.userData.profile.Key,
             Company: session.userData.profile.companyName
         }
     };
@@ -382,9 +390,9 @@ function getUsernames(session) {
 function getBadgeInfo(session) {
     var itemsArray = [];
     var options = {
-        url: 'https://saluteapi.fivefriday.com/api/Badge?active=true&currentPage=1&perPage=9999',
+        url: 'https://saluteapi-dev.fivefriday.com/api/Badge?active=true&currentPage=1&perPage=9999',
         headers: {
-            Authorization: session.userData.profile.Key,
+            Authorization: "Bearer "+session.userData.profile.Key,
             Company: session.userData.profile.companyName
         }
     };
@@ -414,9 +422,9 @@ function getTop(session) {
     var TopArray = [];
     var itemsArray = [];
     var options = {
-        url: 'https://saluteapi.fivefriday.com/api/leaderboard?perPage=5&currentPage=1&sort=position',
+        url: 'https://saluteapi-dev.fivefriday.com/api/leaderboard?perPage=5&currentPage=1&sort=position',
         headers: {
-            Authorization: session.userData.profile.Key,
+            Authorization: "Bearer "+session.userData.profile.Key,
             Company: session.userData.profile.companyName
         }
     };
@@ -446,12 +454,12 @@ function getTop(session) {
     request(options, callback);
 
 }
-//###########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 
 
-//###########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 //Other Functions
-//###########################################################################################################################
+//---------------------------------------------------------------------------------------------------
 function helpTheUser(session) {
     session.send("I can help by answering simple questions about how I work. I'm just a bot, though! If you need more help, ask someone else. Here is a list of my commands \n\n Salute \n\n Top \n\n Help");
 }
@@ -469,6 +477,7 @@ function getCardsAttachments(session) {
                     .text(badgeDescription[i])
                     .buttons([
                         builder.CardAction.imBack(session, badgeName[i], "Select")
+                    
                     ])
             )
 
@@ -478,11 +487,16 @@ function getCardsAttachments(session) {
 
 }
 
-//############################################################################################################################
+function getLoginCard(session)
+{
+    return [
+        new builder.ThumbnailCard(session)
+                            .title("Please Log In")
+                            .buttons([
+                                builder.CardAction.openUrl(session,tokenUrl, "Log in")
+                            ])
+    ]
+}
 
 
-//############################################################################################################################
-//Authenticate user
-//############################################################################################################################
-
-//############################################################################################################################
+//---------------------------------------------------------------------------------------------------
